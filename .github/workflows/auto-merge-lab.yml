@@ -19,24 +19,58 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b automation/auto-merge-lab
+
+          git checkout -B automation/auto-merge-lab
+
           echo 'Auto Merge Lab test' >> logs/auto-merge.md
           git add logs/auto-merge.md
-          git commit -m 'test auto merge lab'
+
+          git diff --cached --quiet || git commit -m 'test auto merge lab'
+
           git push origin automation/auto-merge-lab --force
 
-      - name: Create PR and enable auto-merge
+      - name: Create or find Pull Request
+        id: pr
         uses: actions/github-script@v7
         with:
           script: |
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'Auto Merge Lab test',
-              head: 'automation/auto-merge-lab',
+            const { owner, repo } = context.repo;
+
+            const { data: pulls } = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:automation/auto-merge-lab`,
               base: 'main',
-              body: 'Automated auto-merge test.'
+              state: 'open'
             });
+
+            let pr;
+
+            if (pulls.length > 0) {
+              pr = pulls[0];
+              console.log('Using existing PR #' + pr.number);
+            } else {
+              const result = await github.rest.pulls.create({
+                owner,
+                repo,
+                title: 'Auto Merge Lab test',
+                head: 'automation/auto-merge-lab',
+                base: 'main',
+                body: 'Automated auto-merge test.'
+              });
+
+              pr = result.data;
+              console.log('Created PR #' + pr.number);
+            }
+
+            core.setOutput('node_id', pr.node_id);
+            core.setOutput('number', pr.number);
+
+      - name: Enable auto-merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const nodeId = '${{ steps.pr.outputs.node_id }}';
 
             await github.graphql(`
               mutation($pullRequestId: ID!) {
@@ -54,6 +88,8 @@ jobs:
                   }
                 }
               }
-            `, { pullRequestId: pr.node_id });
+            `, {
+              pullRequestId: nodeId
+            });
 
-            console.log('Created PR #' + pr.number);
+            console.log('Auto-merge enabled.');
