@@ -1,0 +1,41 @@
+﻿name: PR Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create branch and change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b automation/pr-lab
+          echo "PR Lab test" >> logs/pr-lab.md
+          git add logs/pr-lab.md
+          git commit -m 'test PR lab workflow'
+          git push origin automation/pr-lab --force
+
+      - name: Create Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'PR Lab automated test',
+              head: 'automation/pr-lab',
+              base: 'main',
+              body: 'This pull request was created by the PR Lab workflow for testing GitHub collaboration automation.'
+            });
+            console.log('Created PR #' + pr.number);
+            console.log(pr.html_url);
