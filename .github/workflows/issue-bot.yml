@@ -1,0 +1,25 @@
+﻿name: Issue Bot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create maintenance issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Automated maintenance check',
+              body: 'This issue was created by GitHub Actions for a repository maintenance check.\\n\\nCreated by: Issue Bot workflow.',
+            });
+            console.log('Created issue #' + issue.data.number);
+            console.log(issue.data.html_url);
