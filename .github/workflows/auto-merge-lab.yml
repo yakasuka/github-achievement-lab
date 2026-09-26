@@ -1,0 +1,59 @@
+﻿name: Auto Merge Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create test branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b automation/auto-merge-lab
+          echo 'Auto Merge Lab test' >> logs/auto-merge.md
+          git add logs/auto-merge.md
+          git commit -m 'test auto merge lab'
+          git push origin automation/auto-merge-lab --force
+
+      - name: Create PR and enable auto-merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Auto Merge Lab test',
+              head: 'automation/auto-merge-lab',
+              base: 'main',
+              body: 'Automated auto-merge test.'
+            });
+
+            await github.graphql(`
+              mutation($pullRequestId: ID!) {
+                enablePullRequestAutoMerge(
+                  input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: MERGE
+                  }
+                ) {
+                  pullRequest {
+                    number
+                    autoMergeRequest {
+                      enabledAt
+                    }
+                  }
+                }
+              }
+            `, { pullRequestId: pr.node_id });
+
+            console.log('Created PR #' + pr.number);
