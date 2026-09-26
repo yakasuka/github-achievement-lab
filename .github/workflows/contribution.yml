@@ -1,18 +1,14 @@
-@"
-name: Contribution Check
+﻿name: Contribution Check
 
 on:
   workflow_dispatch:
 
 jobs:
   check:
-
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Check status
-        run: |
-          echo "GitHub Achievement Lab running"
-"@ | Out-File .github\workflows\contribution.yml -Encoding utf8
+        run: echo 'GitHub Achievement Lab running'
