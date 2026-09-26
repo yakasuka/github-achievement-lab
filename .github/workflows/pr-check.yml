@@ -1,0 +1,21 @@
+﻿name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check repository
+        run: |
+          echo 'PR check started'
+          test -f README.md
+          echo 'README.md exists'
+          echo 'PR check passed'
